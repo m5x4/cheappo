@@ -34,8 +34,8 @@ def main():
     
     print('Bot is running! Press Ctrl+C to stop.')
     
-    # Start polling
-    app.run_polling(poll_interval=3)
+    # Start polling (drop_pending_updates=True ignores messages sent while bot was offline)
+    app.run_polling(poll_interval=3, drop_pending_updates=True)
 
 
 if __name__ == '__main__':
