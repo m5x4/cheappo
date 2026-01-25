@@ -13,7 +13,7 @@ from typing import List, Dict
 BASE_URL = "https://sg.sunriseclick.com"
 COLLECTION_URL = f"{BASE_URL}/collections/sale-badminton-racquets/products.json"
 DATA_FILE = "data/racquet_data.json"
-MIN_DISCOUNT_PERCENT = 10  # Only show racquets with >=10% discount
+MIN_DISCOUNT_PERCENT = 20  # Only show racquets with >=20% discount
 MIN_ORIGINAL_PRICE = 200  # Only consider racquets with original price >= $200
 
 

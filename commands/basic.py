@@ -27,7 +27,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start - Start the bot\n"
         "/help - Show this help message\n"
         "/nike - Get Nike deals\n"
-        "/racquets - Get badminton racquet deals (≥10% off)"
+        "/racquets - Get badminton racquet deals (≥20% off)"
     )
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
