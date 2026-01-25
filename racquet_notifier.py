@@ -1,6 +1,7 @@
 """
 Racquet Channel Notifier
 Automatically posts new sale racquets to a Telegram channel.
+Monitors both Yonex (SunriseClick) and Li-Ning products.
 Run this script periodically (e.g., via cron or launchd) to check for new deals.
 
 SETUP:
@@ -23,7 +24,8 @@ import os
 from telegram import Bot
 from telegram.constants import ParseMode
 from config import TOKEN
-from scrapers.sunriseclick import get_new_sale_racquets, scrape_sale_racquets, format_racquet_message
+from scrapers.sunriseclick import get_new_sale_racquets as get_new_yonex, scrape_sale_racquets as scrape_yonex, format_racquet_message as format_yonex_message
+from scrapers.lining import get_new_sale_products as get_new_lining, scrape_sale_products as scrape_lining, format_product_message as format_lining_message
 
 # ============================================
 # CONFIGURE YOUR CHANNEL ID HERE
@@ -65,7 +67,7 @@ async def send_to_channel(bot: Bot, message: str, image_url: str = None):
 
 
 async def notify_new_racquets():
-    """Check for new racquets and post them to the channel."""
+    """Check for new racquets from both Yonex and Li-Ning and post them to the channel."""
     
     if not CHANNEL_ID:
         print("=" * 60)
@@ -81,73 +83,124 @@ async def notify_new_racquets():
         print("\nExample: CHANNEL_ID = \"@MyRacquetDeals\"")
         return
     
-    print("Checking for new racquet deals...")
+    print("Checking for new racquet deals from Yonex and Li-Ning...")
     
-    # Get new racquets (only ones not seen before)
-    new_racquets = get_new_sale_racquets()
+    # Get new products from both sources
+    print("\n🏸 Checking Yonex (SunriseClick)...")
+    new_yonex = get_new_yonex()
+    print(f"  Found {len(new_yonex)} new Yonex racquet(s)")
     
-    if not new_racquets:
-        print("No new racquets found.")
+    print("\n🏸 Checking Li-Ning...")
+    new_lining = get_new_lining()
+    print(f"  Found {len(new_lining)} new Li-Ning product(s)")
+    
+    total_new = len(new_yonex) + len(new_lining)
+    
+    if total_new == 0:
+        print("\nNo new deals found from either source.")
         return
     
-    print(f"Found {len(new_racquets)} new racquet(s)! Posting to channel...")
+    print(f"\n✨ Total: {total_new} new deal(s)! Posting to channel...")
     
     # Initialize bot
     bot = Bot(token=TOKEN)
     
-    # Post each racquet individually
-    for i, racquet in enumerate(new_racquets, 1):
-        message = (
-            f"🏸 *NEW DEAL #{i}*\n\n"
-            f"{format_racquet_message(racquet)}"
-        )
-        success = await send_to_channel(bot, message, racquet.get("image_url"))
-        if success:
-            print(f"  Posted: {racquet.get('title', 'Unknown')[:50]}...")
-        await asyncio.sleep(1)  # Rate limiting to avoid Telegram limits
+    # Post Yonex racquets
+    if new_yonex:
+        header = f"🏸 *YONEX - {len(new_yonex)} New Deal(s)*\n━━━━━━━━━━━━━━━━━━━━"
+        await send_to_channel(bot, header)
+        await asyncio.sleep(1)
+        
+        for i, racquet in enumerate(new_yonex, 1):
+            message = format_yonex_message(racquet)
+            success = await send_to_channel(bot, message, racquet.get("image_url"))
+            if success:
+                print(f"  [Yonex {i}/{len(new_yonex)}] Posted: {racquet.get('title', 'Unknown')[:50]}...")
+            await asyncio.sleep(1)
     
-    print(f"\n✅ Successfully posted {len(new_racquets)} racquet(s) to channel!")
+    # Post Li-Ning products
+    if new_lining:
+        header = f"🏸 *LI-NING - {len(new_lining)} New Deal(s)*\n━━━━━━━━━━━━━━━━━━━━"
+        await send_to_channel(bot, header)
+        await asyncio.sleep(1)
+        
+        for i, product in enumerate(new_lining, 1):
+            message = format_lining_message(product)
+            success = await send_to_channel(bot, message, product.get("image_url"))
+            if success:
+                print(f"  [Li-Ning {i}/{len(new_lining)}] Posted: {product.get('title', 'Unknown')[:50]}...")
+            await asyncio.sleep(1)
+    
+    print(f"\n✅ Successfully posted {total_new} deal(s) to channel!")
 
 
 async def post_all_current_deals():
-    """Post ALL current deals (not just new ones) - useful for initial channel setup."""
+    """Post ALL current deals from both Yonex and Li-Ning (not just new ones) - useful for initial channel setup."""
     
     if not CHANNEL_ID:
         print("ERROR: CHANNEL_ID not set! Edit racquet_notifier.py first.")
         return
     
-    print("Fetching all current racquet deals...")
-    racquets = scrape_sale_racquets()
+    print("Fetching all current deals from Yonex and Li-Ning...")
     
-    if not racquets:
-        print("No racquets found.")
+    # Get all current deals
+    yonex_racquets = scrape_yonex()
+    lining_products = scrape_lining()
+    
+    total = len(yonex_racquets) + len(lining_products)
+    
+    if total == 0:
+        print("No deals found.")
         return
     
-    print(f"Found {len(racquets)} racquet(s). Posting to channel...")
+    print(f"Found {len(yonex_racquets)} Yonex + {len(lining_products)} Li-Ning = {total} total. Posting to channel...")
     
     bot = Bot(token=TOKEN)
     
     # Post header
     header = (
-        f"🏸 *BADMINTON RACQUET SALE* 🏸\n\n"
-        f"Found {len(racquets)} racquet(s) with ≥10% discount!\n"
-        f"Source: SunriseClick Singapore\n"
+        f"🏸 *BADMINTON EQUIPMENT SALE* 🏸\n\n"
+        f"Yonex: {len(yonex_racquets)} deals\n"
+        f"Li-Ning: {len(lining_products)} deals\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
     await send_to_channel(bot, header)
     await asyncio.sleep(1)
     
-    # Post each racquet (limit to avoid flooding)
-    max_posts = 20  # Limit for initial post to avoid spam
-    for i, racquet in enumerate(racquets[:max_posts], 1):
-        message = format_racquet_message(racquet)
-        await send_to_channel(bot, message, racquet.get("image_url"))
-        print(f"  [{i}/{min(len(racquets), max_posts)}] Posted: {racquet.get('title', 'Unknown')[:40]}...")
+    # Post Yonex racquets (limit to avoid flooding)
+    max_posts_per_source = 10
+    if yonex_racquets:
+        yonex_header = f"🏸 *YONEX (SunriseClick)*\n━━━━━━━━━━━━━━━━━━━━"
+        await send_to_channel(bot, yonex_header)
         await asyncio.sleep(1)
+        
+        for i, racquet in enumerate(yonex_racquets[:max_posts_per_source], 1):
+            message = format_yonex_message(racquet)
+            await send_to_channel(bot, message, racquet.get("image_url"))
+            print(f"  [Yonex {i}/{min(len(yonex_racquets), max_posts_per_source)}] Posted: {racquet.get('title', 'Unknown')[:40]}...")
+            await asyncio.sleep(1)
+        
+        if len(yonex_racquets) > max_posts_per_source:
+            footer = f"... and {len(yonex_racquets) - max_posts_per_source} more Yonex deals! Use /yonex in the bot to see all."
+            await send_to_channel(bot, footer)
+            await asyncio.sleep(1)
     
-    if len(racquets) > max_posts:
-        footer = f"... and {len(racquets) - max_posts} more deals! Use /racquets in the bot to see all."
-        await send_to_channel(bot, footer)
+    # Post Li-Ning products
+    if lining_products:
+        lining_header = f"🏸 *LI-NING*\n━━━━━━━━━━━━━━━━━━━━"
+        await send_to_channel(bot, lining_header)
+        await asyncio.sleep(1)
+        
+        for i, product in enumerate(lining_products[:max_posts_per_source], 1):
+            message = format_lining_message(product)
+            await send_to_channel(bot, message, product.get("image_url"))
+            print(f"  [Li-Ning {i}/{min(len(lining_products), max_posts_per_source)}] Posted: {product.get('title', 'Unknown')[:40]}...")
+            await asyncio.sleep(1)
+        
+        if len(lining_products) > max_posts_per_source:
+            footer = f"... and {len(lining_products) - max_posts_per_source} more Li-Ning deals! Use /lining in the bot to see all."
+            await send_to_channel(bot, footer)
+            await asyncio.sleep(1)
     
     print("\n✅ Done!")
 
@@ -161,18 +214,22 @@ def main():
     
     if len(sys.argv) > 1 and sys.argv[1] == "--all":
         # Post all current deals (for initial channel setup)
-        print("Mode: Posting ALL current deals\n")
+        print("Mode: Posting ALL current deals from both Yonex and Li-Ning\n")
         asyncio.run(post_all_current_deals())
     elif len(sys.argv) > 1 and sys.argv[1] == "--test":
         # Test mode - just check without posting
         print("Mode: Test (checking for deals without posting)\n")
-        racquets = scrape_sale_racquets()
-        print(f"Found {len(racquets)} racquets on sale")
-        new_racquets = get_new_sale_racquets()
-        print(f"Of those, {len(new_racquets)} are new (not seen before)")
+        yonex = scrape_yonex()
+        lining = scrape_lining()
+        print(f"Found {len(yonex)} Yonex racquets on sale")
+        print(f"Found {len(lining)} Li-Ning products on sale")
+        print(f"Total: {len(yonex) + len(lining)} deals")
+        new_yonex = get_new_yonex()
+        new_lining = get_new_lining()
+        print(f"Of those, {len(new_yonex)} Yonex and {len(new_lining)} Li-Ning are new")
     else:
         # Normal mode - post only new deals
-        print("Mode: New deals only\n")
+        print("Mode: New deals only (Yonex + Li-Ning)\n")
         asyncio.run(notify_new_racquets())
 
 

@@ -6,7 +6,7 @@ Main entry point for the bot
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from config import TOKEN
-from commands import start_command, help_command, discounts_command, racquets_command, invalid_command
+from commands import start_command, help_command, discounts_command, yonex_command, lining_command, invalid_command
 from handlers import handle_message, error_handler
 
 
@@ -21,7 +21,8 @@ def main():
     app.add_handler(CommandHandler('start', start_command))
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CommandHandler('nike', discounts_command))
-    app.add_handler(CommandHandler('racquets', racquets_command))
+    app.add_handler(CommandHandler('yonex', yonex_command))
+    app.add_handler(CommandHandler('lining', lining_command))
     
     # Handle unknown commands (must be after valid commands)
     app.add_handler(MessageHandler(filters.COMMAND, invalid_command))

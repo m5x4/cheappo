@@ -13,7 +13,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         f"👋 Hello! I am *{BOT_USERNAME}*\n\n"
         "I help you find the best deals on:\n"
-        "🏸 Badminton racquets\n"
+        "🏸 Badminton racquets (Yonex & Li-Ning)\n"
         "👟 Nike products\n\n"
         "Use /help to see all commands!"
     )
@@ -27,7 +27,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start - Start the bot\n"
         "/help - Show this help message\n"
         "/nike - Get Nike deals\n"
-        "/racquets - Get badminton racquet deals (≥20% off)"
+        "/yonex - Get Yonex racquet deals (≥20% off, ≥$200)\n"
+        "/lining - Get Li-Ning badminton deals (≥20% off, ≥$50)"
     )
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
