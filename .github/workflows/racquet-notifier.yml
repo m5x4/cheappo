@@ -1,0 +1,48 @@
+name: Racquet Sale Notifier
+
+on:
+  # Run every 6 hours
+  schedule:
+    - cron: '0 */6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  check-deals:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests python-telegram-bot
+      
+      - name: Download previous data
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: racquet-data-${{ github.run_id }}
+          restore-keys: |
+            racquet-data-
+      
+      - name: Run notifier
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: python racquet_notifier.py
+      
+      - name: Save data for next run
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/
+          key: racquet-data-${{ github.run_id }}
