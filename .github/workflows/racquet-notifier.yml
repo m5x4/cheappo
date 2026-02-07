@@ -1,9 +1,9 @@
 name: Racquet Sale Notifier
 
 on:
-  # Runs every hour
+  # Runs every 5 minutes
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/5 * * * *"
 
   # Allow manual trigger
   workflow_dispatch:
