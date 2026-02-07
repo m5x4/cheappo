@@ -39,7 +39,7 @@ from scrapers.lining import get_new_sale_products as get_new_lining, scrape_sale
 # Option 3: Environment variable
 # CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "")
 
-CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "-1003720624349")
+CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "")
 
 
 async def send_to_channel(bot: Bot, message: str, image_url: str = None):
