@@ -4,16 +4,20 @@
 
 ### What was found:
 A Telegram bot token was discovered **hardcoded** in the git commit history:
-- **Token**: `7933198908:AAGeEBuZ2-eNtEzeJOZatnuN0-b9J_vLXb0`
-- **Location**: `config.py`
+- **Bot Token** (CRITICAL): `7933198908:AAGeEBuZ2-eNtEzeJOZatnuN0-b9J_vLXb0`
+- **Channel ID** (HIGH): `-1003720624349`
+- **Location**: `config.py` and `racquet_notifier.py`
 - **Commit**: `caed66c63364c802402e1ecf1c849079e5f2a909`
-- **Additional Exposure**: Telegram Channel ID `-1003720624349` was also hardcoded in `racquet_notifier.py`
 
 ### Why this is critical:
-✗ The token is permanently stored in Git history, even though it's been removed from the current code
-✗ Anyone with access to this repository can see the token in the git history
-✗ The token can be used to control your Telegram bot and send messages
-✗ If this repository is public, the token is exposed to the entire world
+✗ The bot token is permanently stored in Git history, even though it's been removed from the current code
+✗ Anyone with access to this repository can see both the token and channel ID in the git history
+✗ The bot token can be used to control your Telegram bot and send messages as your bot
+✗ The channel ID exposure allows anyone to identify your specific channel and potentially:
+  - Monitor channel activity
+  - Send spam or unwanted messages (if they gain bot access)
+  - Target the channel for attacks or monitoring
+✗ If this repository is public, both credentials are exposed to the entire world
 
 ### What you need to do IMMEDIATELY:
 
@@ -72,10 +76,30 @@ A Telegram bot token was discovered **hardcoded** in the git commit history:
 
 ### Additional Channel Security Note:
 
-The Telegram Channel ID `-1003720624349` was also exposed. While less critical than the bot token, you may want to:
-- Make your channel private if it's currently public
-- Change your channel settings if needed
-- Update the channel ID in your environment variables
+The Telegram Channel ID `-1003720624349` was also exposed. This is a **HIGH severity** issue because:
+- Anyone can identify which specific channel your bot is posting to
+- If combined with the bot token, they could send messages to your channel
+- The channel could be targeted for monitoring or spam
+
+**Recommended Actions:**
+1. **Option A - Create a new channel (Most Secure)**:
+   - Create a completely new Telegram channel
+   - Add your bot (with the new token) as admin
+   - Update your TELEGRAM_CHANNEL_ID environment variable
+   - Migrate your subscribers to the new channel if needed
+   - Delete or archive the old channel
+
+2. **Option B - Secure the existing channel (Less Secure)**:
+   - Make your channel private (if currently public)
+   - Review and remove any suspicious members
+   - Enable "Sign messages" to make it clear who posted what
+   - Monitor for any unauthorized posts
+   - Update the channel ID in your environment variables (even though it's the same, this ensures consistency)
+
+**Which option to choose?**
+- If your channel is public or has many unknown members: Choose Option A
+- If your channel is small and you know all members: Option B may be acceptable
+- When in doubt: Choose Option A for maximum security
 
 ### Questions?
 
