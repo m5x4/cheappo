@@ -1,9 +1,9 @@
 import os
 from typing import Final
-import dotenv
 
 # Load environment variables from .env file
 if os.path.exists('.env'):
+    import dotenv
     dotenv.load_dotenv()
 # Telegram Bot Credentials
 # IMPORTANT: Set these as environment variables!
