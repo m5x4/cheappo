@@ -43,6 +43,7 @@ Thumbs.db
 .env
 .env.local
 *.env
+!.env.example
 
 # Data files (optional - remove if you want to track seen products)
 data/

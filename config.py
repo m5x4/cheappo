@@ -2,10 +2,14 @@ import os
 from typing import Final
 
 # Telegram Bot Credentials
-# Uses environment variable if set (for GitHub Actions), otherwise uses hardcoded value
-TOKEN: Final = os.environ.get('TELEGRAM_BOT_TOKEN', '7933198908:AAGeEBuZ2-eNtEzeJOZatnuN0-b9J_vLXb0')
+# IMPORTANT: Set these as environment variables!
+# See .env.example for setup instructions
+TOKEN: Final = os.environ.get('TELEGRAM_BOT_TOKEN')
+if not TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is required! See .env.example for setup.")
+
 BOT_USERNAME: Final = '@cheappoBot'
-TELEGRAM_CHAT_ID: Final = 'YOUR_TELEGRAM_CHAT_ID'
+TELEGRAM_CHAT_ID: Final = os.environ.get('TELEGRAM_CHAT_ID', 'YOUR_TELEGRAM_CHAT_ID')
 
 # Shopee API Credentials (if needed)
 PARTNER_ID: Final = 'YOUR_PARTNER_ID'
