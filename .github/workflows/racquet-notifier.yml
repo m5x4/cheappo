@@ -31,8 +31,8 @@ jobs:
         with:
           path: data/
           key: racquet-data-${{ github.run_id }}
-          # restore-keys: |
-          #   racquet-data-
+          restore-keys: |
+            racquet-data-
 
       - name: Run notifier
         env:
