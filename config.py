@@ -1,6 +1,9 @@
 import os
 from typing import Final
+import dotenv
 
+# Load environment variables from .env file
+dotenv.load_dotenv()
 # Telegram Bot Credentials
 # IMPORTANT: Set these as environment variables!
 # See .env.example for setup instructions

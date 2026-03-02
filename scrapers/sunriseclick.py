@@ -8,6 +8,8 @@ import json
 import os
 from datetime import datetime
 from typing import List, Dict
+from .methods import load_seen_products, save_seen_products, find_new_or_better_products
+
 
 # Constants
 BASE_URL = "https://sg.sunriseclick.com"
@@ -137,63 +139,6 @@ def extract_racquet_data(products: List[Dict]) -> List[Dict]:
     return racquets
 
 
-def load_seen_products() -> Dict:
-    """Load previously seen products from JSON file."""
-    # Ensure data directory exists
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as f:
-                data = json.load(f)
-                # Migrate old format (list of IDs) to new format (dict with discounts)
-                if "seen_ids" in data and isinstance(data["seen_ids"], list):
-                    data["seen_products"] = {id: 0 for id in data["seen_ids"]}
-                    del data["seen_ids"]
-                return data
-        except (json.JSONDecodeError, IOError):
-            pass
-    return {"seen_products": {}, "last_updated": None}
-
-
-def save_seen_products(seen_data: Dict):
-    """Save seen products to JSON file."""
-    # Ensure data directory exists
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    
-    seen_data["last_updated"] = datetime.now().isoformat()
-    with open(DATA_FILE, "w") as f:
-        json.dump(seen_data, f, indent=2)
-
-
-def find_new_or_better_racquets(current_racquets: List[Dict], seen_data: Dict) -> List[Dict]:
-    """
-    Find racquets that are either:
-    1. New (not seen before)
-    2. Have a better discount than last seen
-    """
-    seen_products = seen_data.get("seen_products", {})
-    results = []
-    
-    for racquet in current_racquets:
-        product_id = racquet["id"]
-        current_discount = racquet["discount_percent"]
-        
-        if product_id not in seen_products:
-            # New racquet
-            racquet["is_new"] = True
-            racquet["discount_increased"] = False
-            results.append(racquet)
-        elif current_discount > seen_products[product_id]:
-            # Discount increased
-            racquet["is_new"] = False
-            racquet["discount_increased"] = True
-            racquet["previous_discount"] = seen_products[product_id]
-            results.append(racquet)
-    
-    return results
-
-
 def format_racquet_message(racquet: Dict) -> str:
     """Format a racquet into a Telegram message."""
     availability = "✅ In Stock" if racquet["available"] else "❌ Out of Stock"
@@ -243,16 +188,16 @@ def get_new_sale_racquets() -> List[Dict]:
     current_racquets = scrape_sale_racquets()
     
     # Load seen products
-    seen_data = load_seen_products()
+    seen_data = load_seen_products(DATA_FILE)
     
     # Find new racquets or ones with better discounts
-    notable_racquets = find_new_or_better_racquets(current_racquets, seen_data)
+    notable_racquets = find_new_or_better_products(current_racquets, seen_data)
     
     # Update seen products with current IDs and discounts
     seen_data["seen_products"] = {
         r["id"]: r["discount_percent"] for r in current_racquets
     }
-    save_seen_products(seen_data)
+    save_seen_products(seen_data, DATA_FILE)
     
     new_count = sum(1 for r in notable_racquets if r.get("is_new", False))
     increased_count = sum(1 for r in notable_racquets if r.get("discount_increased", False))

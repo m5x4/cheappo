@@ -27,6 +27,7 @@ from config import TOKEN
 from scrapers.sunriseclick import get_new_sale_racquets as get_new_yonex, scrape_sale_racquets as scrape_yonex, format_racquet_message as format_yonex_message
 from scrapers.lining import get_new_sale_products as get_new_lining, scrape_sale_products as scrape_lining, format_product_message as format_lining_message
 
+
 # ============================================
 # CONFIGURE YOUR CHANNEL ID HERE
 # ============================================

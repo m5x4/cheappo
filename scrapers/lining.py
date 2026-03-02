@@ -8,6 +8,7 @@ import json
 import os
 from datetime import datetime
 from typing import List, Dict
+from .methods import load_seen_products, save_seen_products, find_new_or_better_products
 
 # Constants
 BASE_URL = "https://sg.lining.studio/collections/badminton-racket"
@@ -137,62 +138,19 @@ def extract_product_data(products: List[Dict]) -> List[Dict]:
     
     return items
 
-
-def load_seen_products() -> Dict:
-    """Load previously seen products from JSON file."""
-    # Ensure data directory exists
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as f:
-                data = json.load(f)
-                # Migrate old format (list of IDs) to new format (dict with discounts)
-                if "seen_ids" in data and isinstance(data["seen_ids"], list):
-                    data["seen_products"] = {id: 0 for id in data["seen_ids"]}
-                    del data["seen_ids"]
-                return data
-        except (json.JSONDecodeError, IOError):
-            pass
-    return {"seen_products": {}, "last_updated": None}
-
-
-def save_seen_products(seen_data: Dict):
-    """Save seen products to JSON file."""
-    # Ensure data directory exists
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    
-    seen_data["last_updated"] = datetime.now().isoformat()
-    with open(DATA_FILE, "w") as f:
-        json.dump(seen_data, f, indent=2)
-
-
-def find_new_or_better_products(current_items: List[Dict], seen_data: Dict) -> List[Dict]:
+def scrape_sale_products(min_discount: float = MIN_DISCOUNT_PERCENT) -> List[Dict]:
     """
-    Find products that are either:
-    1. New (not seen before)
-    2. Have a better discount than last seen
+    Main scraping function.
+    Returns list of products on sale with discount >= min_discount.
     """
-    seen_products = seen_data.get("seen_products", {})
-    results = []
+    print(f"Fetching sale products from Li-Ning...")
+    products = fetch_all_products()
+    print(f"Found {len(products)} products total")
     
-    for item in current_items:
-        product_id = item["id"]
-        current_discount = item["discount_percent"]
-        
-        if product_id not in seen_products:
-            # New product
-            item["is_new"] = True
-            item["discount_increased"] = False
-            results.append(item)
-        elif current_discount > seen_products[product_id]:
-            # Discount increased
-            item["is_new"] = False
-            item["discount_increased"] = True
-            item["previous_discount"] = seen_products[product_id]
-            results.append(item)
+    items = extract_product_data(products)
+    print(f"Found {len(items)} products with >={min_discount}% discount")
     
-    return results
+    return items
 
 
 def format_product_message(item: Dict) -> str:
@@ -230,21 +188,6 @@ def format_product_message(item: Dict) -> str:
     return message
 
 
-def scrape_sale_products(min_discount: float = MIN_DISCOUNT_PERCENT) -> List[Dict]:
-    """
-    Main scraping function.
-    Returns list of products on sale with discount >= min_discount.
-    """
-    print(f"Fetching sale products from Li-Ning...")
-    products = fetch_all_products()
-    print(f"Found {len(products)} products total")
-    
-    items = extract_product_data(products)
-    print(f"Found {len(items)} products with >={min_discount}% discount")
-    
-    return items
-
-
 def get_new_sale_products() -> List[Dict]:
     """
     Scrape and return NEW products or ones with INCREASED discount.
@@ -254,7 +197,7 @@ def get_new_sale_products() -> List[Dict]:
     current_items = scrape_sale_products()
     
     # Load seen products
-    seen_data = load_seen_products()
+    seen_data = load_seen_products(DATA_FILE)
     
     # Find new products or ones with better discounts
     notable_items = find_new_or_better_products(current_items, seen_data)
@@ -263,7 +206,7 @@ def get_new_sale_products() -> List[Dict]:
     seen_data["seen_products"] = {
         i["id"]: i["discount_percent"] for i in current_items
     }
-    save_seen_products(seen_data)
+    save_seen_products(seen_data, DATA_FILE)
     
     new_count = sum(1 for i in notable_items if i.get("is_new", False))
     increased_count = sum(1 for i in notable_items if i.get("discount_increased", False))
